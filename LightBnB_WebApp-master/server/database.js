@@ -30,7 +30,7 @@ const getUserWithEmail = function (email) {
 		.query(
 			`SELECT * 
 	FROM users
-	WHERE users.email = $1`,
+	WHERE users.email = $1;`,
 			[email]
 		)
 		.then((result) => result.rows[0])
@@ -38,17 +38,6 @@ const getUserWithEmail = function (email) {
 			console.log('######Error######');
 			console.log(e.message);
 		});
-
-	/* let user;
-	for (const userId in users) {
-		user = users[userId];
-		if (user.email.toLowerCase() === email.toLowerCase()) {
-			break;
-		} else {
-			user = null;
-		}
-	}
-	return Promise.resolve(user); */
 };
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -62,7 +51,7 @@ const getUserWithId = function (id) {
 		.query(
 			`SELECT * 
 FROM users
-WHERE users.id = $1`,
+WHERE users.id = $1;`,
 			[id]
 		)
 		.then((result) => (result.rows[0]))
@@ -89,11 +78,6 @@ const addUser = function (user) {
 		console.log('######Error######');
 		console.log(e.message);
 	});
-	/* 
-	const userId = Object.keys(users).length + 1;
-	user.id = userId;
-	users[userId] = user;
-	return Promise.resolve(user); */
 };
 exports.addUser = addUser;
 
@@ -105,7 +89,26 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = function (guest_id, limit = 10) {
-	return getAllProperties(null, 2);
+	
+	return pool
+		.query(	`
+ 		SELECT reservations.*, properties.title, properties.thumbnail_photo_url, properties.number_of_bedrooms, properties.number_of_bathrooms, properties.parking_spaces, properties.cost_per_night, avg(property_reviews.rating) as average_rating
+    FROM reservations
+		JOIN property_reviews ON reservations.id = property_reviews.reservation_id
+		JOIN properties ON reservations.property_id = properties.id
+		WHERE reservations.guest_id = $1
+		GROUP BY reservations.id, properties.title, properties.thumbnail_photo_url, properties.number_of_bedrooms, properties.number_of_bathrooms, properties.parking_spaces, properties.cost_per_night
+    LIMIT $2;`, [guest_id, limit])
+		.then((result) => {
+			console.log('The Results: ', result.rows)
+			return result.rows})
+		.catch((err) => {
+			console.log('######Error######');
+			console.log(err.message);
+		});
+	
+	
+	//return getAllProperties(null, 2);
 };
 exports.getAllReservations = getAllReservations;
 
@@ -122,21 +125,14 @@ const getAllProperties = function (options, limit = 10) {
 		.query(	`
  		SELECT *
     FROM properties
-    LIMIT $1`,
+    LIMIT $1;`,
 			[limit]
 		)
 		.then((result) => result.rows)
 		.catch((err) => {
+			console.log('######Error######');
 			console.log(err.message);
 		});
-
-	/*
-	const limitedProperties = {};
-	for (let i = 1; i <= limit; i++) {
-		limitedProperties[i] = properties[i];
-	}
-	return Promise.resolve(limitedProperties);
-  */
 };
 exports.getAllProperties = getAllProperties;
 
